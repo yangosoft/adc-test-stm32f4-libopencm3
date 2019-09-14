@@ -100,7 +100,14 @@ void clock_setup(void)
 
 	/* And ADC*/
 	rcc_periph_clock_enable(RCC_ADC1);
- systick_interrupt_enable();
+       /* clock rate / 48000 to get 1mS interrupt rate */
+    systick_set_reload(168000); //24MHz / 1000 -> 24000
+
+    systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
+    systick_counter_enable();
+
+    /* this done last */
+    systick_interrupt_enable();
 }
 
 void gpio_setup(void)
@@ -141,6 +148,7 @@ gpio_mode_setup(LED_DISCO_GREEN_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,	LED_DISC
     while(1)
     {
 	
+        gpio_toggle(LED_DISCO_GREEN_PORT,LED_DISCO_GREEN_PIN);
 
 	/* green led for ticking */
 	
