@@ -13,12 +13,9 @@
 #define LED_DISCO_GREEN_PORT GPIOG
 #define LED_DISCO_GREEN_PIN GPIO13
 
-
-
 #define USART_CONSOLE USART1
 
-
-extern "C"{
+extern "C" {
 /**
  * Use USART_CONSOLE as a console.
  * This is a syscall for newlib
@@ -27,15 +24,15 @@ extern "C"{
  * @param len
  * @return
  */
-    int _write(int /*file*/, char *ptr, int len)
-    {
-        int i;
-        for (i = 0; i < len; i++) {
+int _write(int /*file*/, char* ptr, int len)
+{
+    int i;
+    for (i = 0; i < len; i++) {
 
-            usart_send_blocking(USART_CONSOLE, ptr[i]);
-        }
-        return i;
+        usart_send_blocking(USART_CONSOLE, ptr[i]);
     }
+    return i;
+}
 }
 
 /* milliseconds since boot */
@@ -51,7 +48,8 @@ void sys_tick_handler(void)
 void msleep(uint32_t delay)
 {
     uint32_t wake = system_millis + delay;
-    while (wake > system_millis);
+    while (wake > system_millis)
+        ;
 }
 
 /* Getter function for the current time */
@@ -62,46 +60,45 @@ uint32_t mtime(void)
 
 void adc_setup(void)
 {
-   gpio_mode_setup(GPIOA, GPIO_MODE_ANALOG, GPIO_PUPD_NONE, GPIO3);
-	gpio_mode_setup(GPIOA, GPIO_MODE_ANALOG, GPIO_PUPD_NONE, GPIO5);
+    gpio_mode_setup(GPIOA, GPIO_MODE_ANALOG, GPIO_PUPD_NONE, GPIO3);
+    gpio_mode_setup(GPIOA, GPIO_MODE_ANALOG, GPIO_PUPD_NONE, GPIO5);
 
-	adc_power_off(ADC1);
-	adc_disable_scan_mode(ADC1);
-	adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_3CYC);
+    adc_power_off(ADC1);
+    adc_disable_scan_mode(ADC1);
+    adc_set_sample_time_on_all_channels(ADC1, ADC_SMPR_SMP_3CYC);
 
-	adc_power_on(ADC1);
-
+    adc_power_on(ADC1);
 }
 
 uint16_t read_adc_naiive(uint8_t channel)
 {
     uint8_t channel_array[16];
-	channel_array[0] = channel;
-	adc_set_regular_sequence(ADC1, 1, channel_array);
-	adc_start_conversion_regular(ADC1);
-	while (!adc_eoc(ADC1));
-	uint16_t reg16 = adc_read_regular(ADC1);
-	return reg16;
+    channel_array[0] = channel;
+    adc_set_regular_sequence(ADC1, 1, channel_array);
+    adc_start_conversion_regular(ADC1);
+    while (!adc_eoc(ADC1))
+        ;
+    uint16_t reg16 = adc_read_regular(ADC1);
+    return reg16;
 }
-
 
 /* Set STM32 to 24 MHz. */
 void clock_setup(void)
 {
 
     rcc_clock_setup_pll(&rcc_hse_8mhz_3v3[RCC_CLOCK_3V3_168MHZ]);
-	/* Enable GPIOD clock for LED & USARTs. */
-	rcc_periph_clock_enable(RCC_GPIOG);
-	rcc_periph_clock_enable(RCC_GPIOA);
+    /* Enable GPIOD clock for LED & USARTs. */
+    rcc_periph_clock_enable(RCC_GPIOG);
+    rcc_periph_clock_enable(RCC_GPIOA);
 
-	/* Enable clocks for USART2 and dac */
-	rcc_periph_clock_enable(RCC_USART1);
-	rcc_periph_clock_enable(RCC_DAC);
+    /* Enable clocks for USART2 and dac */
+    rcc_periph_clock_enable(RCC_USART1);
+    rcc_periph_clock_enable(RCC_DAC);
 
-	/* And ADC*/
-	rcc_periph_clock_enable(RCC_ADC1);
-       /* clock rate / 48000 to get 1mS interrupt rate */
-    systick_set_reload(168000); //24MHz / 1000 -> 24000
+    /* And ADC*/
+    rcc_periph_clock_enable(RCC_ADC1);
+    /* clock rate / 48000 to get 1mS interrupt rate */
+    systick_set_reload(168000);  // 24MHz / 1000 -> 24000
 
     systick_set_clocksource(STK_CSR_CLKSOURCE_AHB);
     systick_counter_enable();
@@ -113,13 +110,11 @@ void clock_setup(void)
 void gpio_setup(void)
 {
 
+    /* Setup GPIO pins for USART1 transmit. */
+    gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO9);
 
-   
-	/* Setup GPIO pins for USART1 transmit. */
-	gpio_mode_setup(GPIOA, GPIO_MODE_AF, GPIO_PUPD_NONE, GPIO9);
-
-	/* Setup USART1 TX pin as alternate function. */
-	gpio_set_af(GPIOA, GPIO_AF7, GPIO9);
+    /* Setup USART1 TX pin as alternate function. */
+    gpio_set_af(GPIOA, GPIO_AF7, GPIO9);
 
     usart_set_baudrate(USART1, 38400);
     usart_set_databits(USART1, 8);
@@ -130,37 +125,28 @@ void gpio_setup(void)
 
     /* Finally enable the USART. */
     usart_enable(USART1);
-
 }
 
-
-
-
-int main( void )
+int main(void)
 {
     clock_setup();
     gpio_setup();
     adc_setup();
 
-    
-gpio_mode_setup(LED_DISCO_GREEN_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE,	LED_DISCO_GREEN_PIN);
+    gpio_mode_setup(LED_DISCO_GREEN_PORT, GPIO_MODE_OUTPUT, GPIO_PUPD_NONE, LED_DISCO_GREEN_PIN);
 
-    while(1)
-    {
-	
-        gpio_toggle(LED_DISCO_GREEN_PORT,LED_DISCO_GREEN_PIN);
+    while (1) {
 
-	/* green led for ticking */
-	
+        gpio_toggle(LED_DISCO_GREEN_PORT, LED_DISCO_GREEN_PIN);
+
+        /* green led for ticking */
+
         uint16_t adcValue1 = read_adc_naiive(3);
         uint16_t adcValue2 = read_adc_naiive(5);
-        
-        printf("PA3: %d PA5: %d\n",adcValue1, adcValue2);
 
-        
-	
+        printf("PA3: %d PA5: %d\n", adcValue1, adcValue2);
 
-	msleep(600);
+        msleep(600);
     }
 
     return 0;
